@@ -2796,7 +2796,7 @@ const FCAT=[['Proteínas',['Pollo cocido','Carne vacuna asada','Carne molida coc
 let DCI=0;
 function dCats(){const seen=[],C=FCAT.map(c=>[c[0],c[1].map(n=>FD.findIndex(x=>x.n===n)).filter(k=>k>=0)]);C.forEach(c=>c[1].forEach(k=>seen.push(k)));const rest=FD.map((x,k)=>k).filter(k=>!seen.includes(k));if(rest.length)C.push(['Otros',rest]);return C;}
 function dAc(){$('#dR').innerHTML=dCats().map((c,ci)=>{const n=c[1].filter(k=>DR.items.some(x=>x.n===FD[k].n)).length;return '<div class="ac"><button class="h" onclick="dCat('+ci+')"><span>'+c[0]+'</span><em>'+(n?n+' ✓ ':'')+'<i>›</i></em></button></div>';}).join('');}
-function dCat(ci){const nm=$('#dN');if(nm)DR.name=nm.value;DCI=ci;sheet('<div class="fx-bk"><button onclick="dSheet()">‹ Atrás</button><h3>'+dCats()[ci][0]+'</h3></div><div class="fx-ac"><div class="b" id="dCL"></div></div><button class="fc-btn" onclick="dSheet()">Listo</button>','fc-mid fc-fix');dCl();}
+function dCat(ci){const nm=$('#dN');if(nm)DR.name=nm.value;DCI=ci;sheet('<div class="fx-bk" data-bk="dSheet"><h3>'+dCats()[ci][0]+'</h3></div><div class="fx-ac"><div class="b" id="dCL"></div></div><button class="fc-btn" onclick="dSheet()">Listo</button>','fc-mid fc-fix');dCl();}
 function dCl(){$('#dCL').innerHTML=dCats()[DCI][1].filter(k=>okF(FD[k])).map(k=>'<button onclick="dTg('+k+')"><b>'+(DR.items.some(x=>x.n===FD[k].n)?'✓ ':'')+esc(FD[k].n)+'</b><span>'+FD[k].u+' g · '+Math.round(FD[k].k*FD[k].u/100)+' kcal</span></button>').join('');}
 function dTg(k){const x=FD[k],i=DR.items.findIndex(y=>y.n===x.n);if(i>=0)DR.items.splice(i,1);else DR.items.push({n:x.n,g:x.u,k:x.k,p:x.p,c:x.c,f:x.f});dCl();}
 function dRe(){$('#dI').innerHTML=DR.items.map((x,i)=>'<div class="fx-it"><input value="'+esc(x.n)+'" oninput="DR.items['+i+'].n=this.value" maxlength="60"><input inputmode="decimal" value="'+x.g+'" oninput="dG('+i+',this.value)"><em>g</em><button onclick="DR.items.splice('+i+',1);dRe()" aria-label="Quitar">×</button><small id="dk'+i+'">'+dL(x)+(x.conf==='baja'?' · poca certeza':'')+'</small></div>').join('');dU();if($('#dR'))dAc();}
@@ -2950,7 +2950,7 @@ function hoyTab(){
   return h+'<button class="fc-btn ghost fc-in" onclick="exAdd()">+ Añadir ejercicio</button><button class="fc-btn fc-in" onclick="finishW()">'+(dn?'Reabrir sesión':'Finalizar entrenamiento')+'</button><div class="fc-note">Calienta antes de levantar, prioriza la técnica y detente si sientes dolor agudo. Si tienes una lesión o condición médica, consulta antes de entrenar. Las sugerencias de progresión son generales.</div>';}
 let EG=0;
 function exAdd(){sheet('<h3>Añadir ejercicio</h3><div class="fx-ac">'+GL.map((g,gi)=>'<div class="ac"><button class="h" onclick="exGrp('+gi+')"><span>'+g+'</span><em><i>›</i></em></button></div>').join('')+'<div class="ac"><button class="h" onclick="exOther()"><span>Otro ejercicio</span><em><i>›</i></em></button><div id="exO"></div></div></div><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button>');}
-function exGrp(gi){EG=gi;sheet('<div class="fx-bk"><button onclick="exAdd()">‹ Atrás</button><h3>'+GL[gi]+'</h3></div><div class="fx-ac"><div class="b" id="exL"></div></div><button class="fc-btn" onclick="closeSheet()">Listo</button>');exRe();}
+function exGrp(gi){EG=gi;sheet('<div class="fx-bk" data-bk="exAdd"><h3>'+GL[gi]+'</h3></div><div class="fx-ac"><div class="b" id="exL"></div></div><button class="fc-btn" onclick="closeSheet()">Listo</button>');exRe();}
 function exRe(){const base=sesEx(sesDay(todayWd())||{ex:[]}).map(x=>x.n),have=exX().map(e=>e.n);window.EXO=exAv(GL[EG]).filter(n=>!base.includes(n));
   $('#exL').innerHTML=window.EXO.map((n,i)=>'<button onclick="exTg('+i+')"><b>'+(have.includes(n)?'✓ ':'')+esc(n)+'</b></button>').join('')||'<div class="fc-note" style="margin:6px 2px">Ya están todos en tu sesión.</div>';}
 function exTg(i){const n=window.EXO[i],td=tdk(),a=(S.tr.extra=S.tr.extra||{})[td]=S.tr.extra[td]||[],k=a.findIndex(x=>x.n===n);if(k>=0)a.splice(k,1);else a.push({n,sets:3,reps:'8–12',rest:'1–2 min'});save();window.EXD=1;exRe();}
@@ -3037,13 +3037,13 @@ function importData(i){
 let LT=tdk();
 document.addEventListener('visibilitychange',()=>{if(document.hidden||LT===tdk())return;if(sel===LT)sel=tdk();LT=tdk();STILL=false;if(S.onboarded&&!ob)render();});
 document.addEventListener('focusin',e=>{const t=e.target;if(t&&t.closest&&t.closest('.fc-sheet'))setTimeout(()=>t.scrollIntoView({block:'center',behavior:'smooth'}),320);});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const k=[...document.querySelectorAll('.fc-sheet.on')].pop(),b=k&&k.querySelector('.fx-bk[data-bk]'),fn=b&&window[b.dataset.bk];if(typeof fn==='function')fn();else closeSheet();}});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
 
 /* ---------- gestos: deslizar hacia la derecha para volver, deslizar hacia abajo para cerrar cuadros ---------- */
 function backAction(){
   const sh=[...document.querySelectorAll('.fc-sheet.on')].pop();
-  if(sh){const b=sh.querySelector('.fx-bk button');return b?()=>b.click():closeSheet;}
+  if(sh){const b=sh.querySelector('.fx-bk[data-bk]'),fn=b&&window[b.dataset.bk];return typeof fn==='function'?()=>fn():closeSheet;}
   const ac=$('#acct.on');if(ac)return ac.querySelector('.ac-x[hidden]')?null:acctClose;
   const tp=$('#themePick.on');if(tp)return TP&&TP.from?tpCancel:null;
   if(ob||!S.onboarded){const b=$('#obBack');return ob&&b&&!b.classList.contains('hide')?obPrev:null;}
