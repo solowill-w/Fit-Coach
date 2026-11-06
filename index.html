@@ -2751,6 +2751,63 @@ const fdate=d=>{const x=new Date(d+'T00:00:00');return DN[x.getDay()]+' '+x.getD
 const r5=g=>Math.max(5,Math.round(g/5)*5),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
 /* base local aproximada (por 100 g, alimento cocido salvo indicación): [palabras, nombre, kcal, P, C, G, gramos por porción, unidad, marcas] */
 const FD=[
+/* --- alimentos extra (van primero: las palabras más específicas deben ganar a las genéricas como «pan», «leche», «jamon») --- */
+['pan(?:es)? integral(?:es)?|pan de salvado|pan de centeno|pan multicereal|rodajas? de pan integral','Pan integral',250,12,43,3.5,28,'rodaja','gluten'],
+['pan(?:es)? de sandwich|pan(?:es)? lactal|pan(?:es)? de molde|pan blanco de molde|rodajas? de pan','Pan de sandwich',265,9,49,3.2,28,'rodaja','gluten'],
+['pan(?:es)? arabes?|pan(?:es)? pita|pitas?','Pan árabe',275,9,55,1.2,60,'unidad','gluten'],
+['tostadas?','Tostadas',400,11,75,6,10,'unidad','gluten'],
+['wraps?|tortillas? de trigo|tortillas? mexicanas?','Wrap / tortilla de trigo',310,8.5,52,7,60,'unidad','gluten'],
+['arroz integral','Arroz integral cocido',123,2.7,26,1,150,'taza',''],
+['fideos integrales|fideo integral|pasta integral|pastas integrales','Fideos integrales cocidos',124,5.3,26.5,.5,150,'plato','gluten'],
+['quinoa|quinua','Quinoa cocida',120,4.4,21,1.9,150,'porción',''],
+['choclo|maiz|elote','Choclo (maíz) cocido',96,3.4,21,1.5,150,'porción',''],
+['granola|muesli','Granola',470,10,64,20,40,'porción','gluten nuts'],
+['barras? de cereal|barritas? de cereal','Barra de cereal',390,6,70,9,25,'unidad','gluten'],
+['cereal|corn flakes|copos de maiz','Cereal',375,7,83,1,30,'porción','gluten'],
+['galletas? de arroz|galletitas? de arroz|tortitas? de arroz','Galletas de arroz',387,8,82,3,9,'unidad',''],
+['garbanzo','Garbanzos cocidos',164,8.9,27,2.6,150,'porción',''],
+['tofu','Tofu',76,8,1.9,4.8,100,'porción','soy'],
+['clara','Claras de huevo',52,11,.7,.2,33,'clara','egg'],
+['jamon de pavo|fiambre de pavo|pavita','Jamón de pavo',105,17,2,3,30,'feta','meat'],
+['jamon crudo|jamon serrano|serrano|prosciutto','Jamón crudo',240,30,.3,13,20,'feta','meat'],
+['pavo|pechuga de pavo','Pavo cocido',135,29,0,1.5,120,'porción','meat'],
+['muslo|pollo con piel|pata muslo','Muslo de pollo cocido',209,26,0,11,120,'unidad','meat'],
+['peceto|nalga|cuadril|lomo|carne magra|bola de lomo','Carne vacuna magra',190,29,0,8,150,'porción','meat'],
+['salmon','Salmón cocido',208,20,0,13,150,'porción','fish'],
+['sardina','Sardinas en lata',208,25,0,11,80,'lata','fish'],
+['barras? de proteina|barritas? de proteina|barras? proteicas?|barritas? proteicas?','Barra de proteína',380,30,35,12,50,'unidad','dairy'],
+['queso cottage|cottage|requeson','Queso cottage',98,11,3.4,4.3,100,'pote','dairy'],
+['ricota|ricotta','Ricota',174,11,3,13,50,'porción','dairy'],
+['queso crema|queso philadelphia|philadelphia','Queso crema',340,6,4,34,20,'cucharada','dairy'],
+['muzzarella|mozzarella|mozarela|muzarela','Muzzarella',280,22,2.2,22,30,'feta','dairy'],
+['yogur griego|yogurt griego','Yogur griego natural',73,10,4,2,170,'pote','dairy'],
+['leche descremada|leche light|leche desnatada','Leche descremada',35,3.4,5,.1,200,'vaso','dairy'],
+['dulce de leche','Dulce de leche',315,7,55,7,20,'cucharada','dairy'],
+['miel','Miel',304,.3,82,0,20,'cucharada','honey'],
+['mermelada|jalea','Mermelada / jalea',250,.4,65,.1,20,'cucharada',''],
+['mantequilla de mani|manteca de mani|pasta de mani|crema de mani','Mantequilla de maní',590,25,20,50,15,'cucharada','nuts'],
+['almendra|nueces|nuez|castana|avellana|pistacho|frutos secos','Frutos secos',610,20,20,53,30,'puñado','nuts'],
+['chia|linaza|semilla','Semillas (chía, lino)',486,17,42,31,10,'cucharada',''],
+['chocolate amargo|chocolate negro|chocolate semi amargo','Chocolate amargo',580,7,46,42,20,'porción',''],
+['mayonesa','Mayonesa',680,1,.6,75,10,'cucharada','egg'],
+['isotonica|gatorade|powerade|bebida deportiva','Bebida isotónica',26,0,6.5,0,500,'botella',''],
+['maltodextrina|dextrosa','Maltodextrina / dextrosa',380,0,95,0,30,'scoop',''],
+['frutilla|fresa','Frutilla',32,.7,7.7,.3,150,'porción',''],
+['uva','Uva',69,.7,18,.2,100,'porción',''],
+['sandia','Sandía',30,.6,7.6,.2,200,'porción',''],
+['melon','Melón',34,.8,8,.2,200,'porción',''],
+['pera','Pera',57,.4,15,.1,150,'unidad',''],
+['durazno|melocoton','Durazno',39,.9,10,.3,150,'unidad',''],
+['anana|pina','Ananá',50,.5,13,.1,150,'porción',''],
+['mango','Mango',60,.8,15,.4,200,'unidad',''],
+['kiwi','Kiwi',61,1.1,15,.5,70,'unidad',''],
+['datil','Dátiles',277,1.8,75,.2,24,'unidad',''],
+['arandano|blueberry','Arándanos',57,.7,14,.3,100,'puñado',''],
+['espinaca','Espinaca cocida',23,2.9,3.6,.4,100,'porción',''],
+['coliflor','Coliflor cocida',25,1.9,5,.3,100,'porción',''],
+['zapallito|zucchini|calabacin','Zapallito / zucchini',17,1.2,3.1,.3,100,'porción',''],
+['remolacha|betarraga|betabel','Remolacha cocida',44,1.7,10,.2,100,'porción',''],
+['verdura|vegetal','Verduras cocidas',35,2,7,.3,150,'porción',''],
 ['mandioca|yuca','Mandioca hervida',160,1.4,38,.3,150,'porción',''],['chipa','Chipa',330,9,38,16,60,'unidad','gluten egg dairy'],
 ['sopa paraguaya','Sopa paraguaya',250,8,22,14,120,'porción','gluten egg dairy'],['mbeju','Mbeju',280,10,30,13,80,'porción','dairy'],
 ['arroz','Arroz cocido',130,2.7,28,.3,150,'taza',''],['fideo|tallarin|pasta','Fideos cocidos',158,5.8,31,.9,150,'plato','gluten'],
@@ -2776,7 +2833,7 @@ const FD=[
 ].map(r=>({re:new RegExp('(?:^|[^a-z])(?:'+r[0]+')(?:e?s)?(?![a-z])'),n:r[1],k:r[2],p:r[3],c:r[4],f:r[5],u:r[6],ul:r[7],fl:r[8]}));
 const AL={Gluten:'gluten',Lactosa:'dairy',Huevo:'egg','Frutos secos':'nuts','Maní':'nuts',Pescado:'fish',Soja:'soy'};
 function okF(x){const p=S.profile,d=p.diet,a=p.allergies||[];
-  if(d==='veg'&&/meat|fish/.test(x.fl)||d==='vegan'&&/meat|fish|dairy|egg/.test(x.fl)||d==='pesc'&&/meat/.test(x.fl))return false;
+  if(d==='veg'&&/meat|fish/.test(x.fl)||d==='vegan'&&/meat|fish|dairy|egg|honey/.test(x.fl)||d==='pesc'&&/meat/.test(x.fl))return false;
   return !a.some(z=>AL[z]&&x.fl.includes(AL[z]));}
 const NW={un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,medio:.5,media:.5};
 function parseText(t){const items=[],miss=[];
@@ -2808,7 +2865,7 @@ function dSheet(){
   const o=S.plan.meals.map(m=>m.n);window.DSL=o;if(!LS||!o.includes(LS))LS=o[0];
   sheet('<h3>Registrar comida</h3><div class="fc-f"><input id="dN" maxlength="60" value="'+esc(DR.name)+'" placeholder="Nombre (opcional)"></div><div class="fx-sl" id="dC"></div><div id="dI"></div><div class="fc-sub" style="margin:4px 0 6px">Añadir alimento</div><div class="fx-ac" id="dR"></div><div class="fx-tot" id="dT"></div><button class="fc-btn" onclick="dOk()">Guardar</button><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button><div class="fc-note" style="text-align:center">Valores estimados (el error puede ser del 20 % o más). Ajusta los gramos si conoces el peso real.'+(DR.note?'<br>'+esc(DR.note):'')+(DR.miss&&DR.miss.length?'<br>No reconocí: '+esc(DR.miss.join(', ')):'')+'</div>','fc-mid');dSl();dRe();}
 function dSl(){$('#dC').innerHTML=window.DSL.map((n,i)=>'<button class="'+(n===LS?'on':'')+'" onclick="LS=window.DSL['+i+'];dSl()">'+esc(n)+'</button>').join('');}
-const FCAT=[['Proteínas',['Pollo cocido','Carne vacuna asada','Carne molida cocida','Carne de cerdo cocida','Pescado cocido','Atún en lata','Huevo','Milanesa','Jamón cocido','Chorizo','Proteína whey']],['Lácteos',['Leche entera','Yogur natural','Queso Paraguay']],['Carbohidratos',['Arroz cocido','Fideos cocidos','Pan francés','Avena','Mandioca hervida','Papa hervida','Batata hervida','Chipa','Sopa paraguaya','Mbeju']],['Legumbres',['Porotos cocidos','Lentejas cocidas','Arvejas cocidas']],['Frutas',['Banana','Manzana','Naranja','Mamón']],['Verduras',['Ensalada mixta','Zanahoria','Brócoli cocido','Zapallo']],['Grasas y frutos secos',['Palta','Maní','Aceite','Mantequilla']],['Comidas preparadas',['Empanada','Locro','Pizza','Hamburguesa']],['Dulces y bebidas',['Galletas','Chocolate','Helado','Azúcar','Jugo de fruta','Gaseosa']]];
+const FCAT=[['Proteínas',['Pollo cocido','Muslo de pollo cocido','Pavo cocido','Carne vacuna asada','Carne vacuna magra','Carne molida cocida','Carne de cerdo cocida','Pescado cocido','Salmón cocido','Atún en lata','Sardinas en lata','Huevo','Claras de huevo','Milanesa','Jamón cocido','Jamón de pavo','Jamón crudo','Chorizo','Tofu']],['Suplementos y deporte',['Proteína whey','Barra de proteína','Bebida isotónica','Maltodextrina / dextrosa']],['Lácteos',['Leche entera','Leche descremada','Yogur natural','Yogur griego natural','Queso Paraguay','Queso cottage','Ricota','Queso crema','Muzzarella']],['Carbohidratos',['Arroz cocido','Arroz integral cocido','Fideos cocidos','Fideos integrales cocidos','Pan francés','Pan de sandwich','Pan integral','Pan árabe','Tostadas','Wrap / tortilla de trigo','Avena','Granola','Cereal','Barra de cereal','Galletas de arroz','Quinoa cocida','Choclo (maíz) cocido','Mandioca hervida','Papa hervida','Batata hervida','Chipa','Sopa paraguaya','Mbeju']],['Legumbres',['Porotos cocidos','Lentejas cocidas','Arvejas cocidas','Garbanzos cocidos']],['Frutas',['Banana','Manzana','Naranja','Mamón','Frutilla','Uva','Sandía','Melón','Pera','Durazno','Ananá','Mango','Kiwi','Arándanos','Dátiles']],['Verduras',['Ensalada mixta','Verduras cocidas','Zanahoria','Brócoli cocido','Coliflor cocida','Espinaca cocida','Zapallo','Zapallito / zucchini','Remolacha cocida']],['Grasas y frutos secos',['Palta','Maní','Frutos secos','Mantequilla de maní','Semillas (chía, lino)','Aceite','Mantequilla','Mayonesa']],['Comidas preparadas',['Empanada','Locro','Pizza','Hamburguesa']],['Dulces y bebidas',['Miel','Mermelada / jalea','Dulce de leche','Chocolate amargo','Galletas','Chocolate','Helado','Azúcar','Jugo de fruta','Gaseosa']]];
 let DCI=0;
 function dCats(){const seen=[],C=FCAT.map(c=>[c[0],c[1].map(n=>FD.findIndex(x=>x.n===n)).filter(k=>k>=0)]);C.forEach(c=>c[1].forEach(k=>seen.push(k)));const rest=FD.map((x,k)=>k).filter(k=>!seen.includes(k));if(rest.length)C.push(['Otros',rest]);return C;}
 function dAc(){$('#dR').innerHTML=dCats().map((c,ci)=>{const n=c[1].filter(k=>DR.items.some(x=>x.n===FD[k].n)).length;return '<div class="ac"><button class="h" onclick="dCat('+ci+')"><span>'+c[0]+'</span><em>'+(n?n+' ✓ ':'')+'<i>›</i></em></button></div>';}).join('');}
