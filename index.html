@@ -3199,7 +3199,7 @@ function ensureS(){
   const ok=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c);
   if(!ok(S.settings.accent))S.settings.accent=DEF.settings.accent;if(!ok(S.settings.base))S.settings.base=DEF.settings.base;
   if(!S.settings.v2){S.settings.accent=DEF.settings.accent;S.settings.base=DEF.settings.base;S.settings.v2=1;save();}
-  if(S.diet&&S.diet.days)S.diet.days.forEach(d=>{d.meals=d.meals.filter(m=>m.n!=='Media mañana');});
+  if(S.diet&&S.diet.src!=='pdf'&&S.diet.days)S.diet.days.forEach(d=>{d.meals=d.meals.filter(m=>m.n!=='Media mañana');});
   if(S.onboarded&&S.profile&&S.plan&&S.plan.meals&&S.plan.meals.some(m=>m.n==='Media mañana')){try{recalc();}catch(e){}}
   if(S.onboarded&&!S.profile)S.onboarded=false;
   else if(S.onboarded&&(!S.plan||!S.targets)){try{recalc();}catch(e){S.onboarded=false;}}
