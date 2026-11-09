@@ -2919,17 +2919,40 @@ function dietTab(){
 let PDFD=null;
 function pdfLoad(){return window.pdfjsLib?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';sc.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';ok();};sc.onerror=()=>no(new Error('red'));document.head.appendChild(sc);});}
 async function pdfLines(file){
-  await pdfLoad();const doc=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise,out=[];
+  await pdfLoad();const doc=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise,out=[];out.ys=[];
   for(let n=1;n<=doc.numPages;n++){const tc=await(await doc.getPage(n)).getTextContent(),rows=[];
     tc.items.forEach(i=>{if(!i.str.trim())return;const y=Math.round(i.transform[5]/3),r=rows.find(q=>q.y===y);r?r.t.push([i.transform[4],i.str]):rows.push({y,t:[[i.transform[4],i.str]]});});
-    rows.sort((a,b)=>b.y-a.y).forEach(r=>out.push(r.t.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).join(' ').replace(/\s+/g,' ').trim()));}
+    rows.sort((a,b)=>b.y-a.y).forEach(r=>{out.push(r.t.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).join(' ').replace(/\s+/g,' ').trim());out.ys.push(r.y-n*100000);});}
   return out;}
 const PD_DAYS=['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
 const PD_DAY=/^(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b|^dia\s*([1-7])\b/;
 const PD_SLOT=/^(desayuno|media manana|colacion|snack|merienda|almuerzo|post[- ]?entreno|cena)\b\s*[:\-–]?\s*/;
 const PD_STOP=/^(total|con leche|cocina|sabado|domingo|en cuanto|como ajustar|lista de|pagina|precio|producto|calculo|escenario)\b/;
 const PD_SN={desayuno:'Desayuno','media manana':'Media mañana',colacion:'Media mañana',snack:'Media mañana',merienda:'Merienda',almuerzo:'Almuerzo',cena:'Cena'};
+/* tablas con etiqueta y kcal centradas en la celda: cada línea se asigna a la etiqueta más cercana (por posición vertical) */
+function pdfRegroup(lines){
+  const ys=lines.ys;if(!ys||ys.length!==lines.length)return lines;
+  const t=l=>nz(l).replace(/^[\s•\-–*·]+/,''),NUM=/^\s*(\d{1,2}\.\d{3}|\d{3,4})\s*$/,END=/\.\s+(\d{1,2}\.\d{3}|\d{3,4})\s*$/;
+  const lab=lines.map(l=>PD_SLOT.test(t(l))),first=lab.indexOf(true);if(first<0)return lines;
+  let last=lines.length;for(let i=first;i<lines.length;i++)if(!lab[i]&&PD_STOP.test(t(lines[i]))){last=i;break;}
+  const reg=lines.slice(first,last);if(reg.some(l=>PD_DAY.test(t(l))))return lines;
+  const alone=reg.some((l,i)=>NUM.test(l)||(lab[first+i]&&!t(l).replace(PD_SLOT,'').trim()));if(!alone)return lines;
+  const g=[];for(let i=first;i<last;i++)if(lab[i])g.push({i,ls:[],k:null});
+  for(let i=first;i<last;i++){
+    let b=0,bd=1e9;g.forEach((x,j)=>{const d=Math.abs(ys[i]-ys[x.i]);if(d<bd){bd=d;b=j;}});
+    const isL=lab[i];if(isL)b=g.findIndex(x=>x.i===i);
+    let l=lines[i];const G=g[b];
+    if(!isL&&NUM.test(l)){G.k=+l.replace('.','').trim();continue;}
+    if(isL){const sm=t(l).match(PD_SLOT),r0=t(l).slice(sm[0].length);if(r0.trim()&&NUM.test(r0)){const m=l.match(/\s(\d{1,2}\.\d{3}|\d{3,4})\s*$/);if(m){G.k=+m[1].replace('.','');l=l.slice(0,m.index);}}}
+    const m=l.match(END);if(m){const v=+m[1].replace('.','');if(v>=150&&v<=3000){G.k=v;l=l.slice(0,m.index+1);}}
+    G.ls.push(l);
+  }
+  const out=[],isN=l=>/^\s*batido\s*\d+\s*[:\-–]?\s*$/i.test(l);
+  g.forEach(x=>{const lb=lines[x.i],li=x.ls.findIndex(l=>PD_SLOT.test(t(l)));const lab1=li>=0?x.ls.splice(li,1)[0]:lb;
+    out.push(lab1);x.ls.filter(isN).forEach(l=>out.push(l));x.ls.filter(l=>!isN(l)).forEach(l=>out.push(l));if(x.k)out.push(String(x.k));});
+  return lines.slice(0,first).concat(out,lines.slice(last));}
 function pdfBuild(lines){
+  lines=pdfRegroup(lines);
   const slots=((S.plan&&S.plan.meals)||[]).map(m=>m.n),pick=n=>slots.find(z=>nz(z).slice(0,4)===nz(n).slice(0,4))||n;
   const days=[],miss=[];let cur=null,slot=null;const newDay=()=>{cur={meals:{},names:{},k:{}};days.push(cur);};
   const cut=t=>{const m=t.match(/\s[-–]\s|:/);return m?t.slice(m.index+m[0].length):'';};
