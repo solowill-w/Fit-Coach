@@ -2870,9 +2870,9 @@ async function logText(){
 const dT=()=>DR.items.reduce((a,i)=>{const m=i.g/100;return{k:a.k+i.k*m,p:a.p+i.p*m,c:a.c+i.c*m,f:a.f+i.f*m};},{k:0,p:0,c:0,f:0});
 const dL=x=>'≈ '+Math.round(x.k*x.g/100)+' kcal · P '+Math.round(x.p*x.g/10)/10+' · C '+Math.round(x.c*x.g/10)/10+' · G '+Math.round(x.f*x.g/10)/10;
 function dSheet(){
-  const o=S.plan.meals.map(m=>m.n);window.DSL=o;if(!LS||!o.includes(LS))LS=o[0];
-  sheet('<h3>Registrar comida</h3><div class="fc-f"><input id="dN" maxlength="60" value="'+esc(DR.name)+'" placeholder="Nombre (opcional)"></div><div class="fx-sl" id="dC"></div><div id="dI"></div><div class="fc-sub" style="margin:4px 0 6px">Añadir alimento</div><div class="fx-ac" id="dR"></div><div class="fx-tot" id="dT"></div><button class="fc-btn" onclick="dOk()">Guardar</button><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button><div class="fc-note" style="text-align:center">Valores estimados (el error puede ser del 20 % o más). Ajusta los gramos si conoces el peso real.'+(DR.note?'<br>'+esc(DR.note):'')+(DR.miss&&DR.miss.length?'<br>No reconocí: '+esc(DR.miss.join(', ')):'')+'</div>','fc-mid');dSl();dRe();}
-function dSl(){$('#dC').innerHTML=window.DSL.map((n,i)=>'<button class="'+(n===LS?'on':'')+'" onclick="LS=window.DSL['+i+'];dSl()">'+esc(n)+'</button>').join('');}
+  const o=S.plan.meals.map(m=>m.n);window.DSL=o;if(!DR.edit&&(!LS||!o.includes(LS)))LS=o[0];
+  sheet('<h3>'+(DR.edit?'Editar comida':'Registrar comida')+'</h3><div class="fc-f"><input id="dN" maxlength="60" value="'+esc(DR.name)+'" placeholder="Nombre (opcional)"></div><div class="fx-sl" id="dC"'+(DR.edit?' style="display:none"':'')+'></div><div id="dI"></div><div class="fc-sub" style="margin:4px 0 6px">Añadir alimento</div><div class="fx-ac" id="dR"></div><div class="fx-tot" id="dT"></div>'+(DR.edit&&DR.edit.same.length?'<label class="fc-note" style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" '+(DR.edit.ap?'checked ':'')+'onchange="DR.edit.ap=this.checked"> Aplicar también a '+DR.edit.same.length+' día'+(DR.edit.same.length>1?'s':'')+' con esta misma comida</label>':'')+'<button class="fc-btn" onclick="dOk()">Guardar</button><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button><div class="fc-note" style="text-align:center">Valores estimados (el error puede ser del 20 % o más). Ajusta los gramos si conoces el peso real.'+(DR.note?'<br>'+esc(DR.note):'')+(DR.miss&&DR.miss.length?'<br>No reconocí: '+esc(DR.miss.join(', ')):'')+'</div>','fc-mid');dSl();dRe();}
+function dSl(){if(DR&&DR.edit)return;$('#dC').innerHTML=window.DSL.map((n,i)=>'<button class="'+(n===LS?'on':'')+'" onclick="LS=window.DSL['+i+'];dSl()">'+esc(n)+'</button>').join('');}
 const FCAT=[['Proteínas',['Pollo cocido','Muslo de pollo cocido','Pavo cocido','Carne vacuna asada','Carne vacuna magra','Carne molida cocida','Carne de cerdo cocida','Pescado cocido','Salmón cocido','Atún en lata','Sardinas en lata','Huevo','Claras de huevo','Milanesa','Jamón cocido','Jamón de pavo','Jamón crudo','Chorizo','Tofu']],['Suplementos y deporte',['Proteína whey','Barra de proteína','Bebida isotónica','Maltodextrina / dextrosa']],['Lácteos',['Leche entera','Leche descremada','Yogur natural','Yogur griego natural','Queso Paraguay','Queso cottage','Ricota','Queso crema','Muzzarella']],['Carbohidratos',['Arroz cocido','Arroz integral cocido','Fideos cocidos','Fideos integrales cocidos','Pan francés','Pan de sandwich','Pan integral','Pan árabe','Tostadas','Wrap / tortilla de trigo','Avena','Granola','Cereal','Barra de cereal','Galletas de arroz','Quinoa cocida','Choclo (maíz) cocido','Mandioca hervida','Papa hervida','Batata hervida','Chipa','Sopa paraguaya','Mbeju']],['Legumbres',['Porotos cocidos','Lentejas cocidas','Arvejas cocidas','Garbanzos cocidos']],['Frutas',['Banana','Manzana','Naranja','Mamón','Frutilla','Uva','Sandía','Melón','Pera','Durazno','Ananá','Mango','Kiwi','Arándanos','Dátiles']],['Verduras',['Ensalada mixta','Verduras cocidas','Zanahoria','Brócoli cocido','Coliflor cocida','Espinaca cocida','Zapallo','Zapallito / zucchini','Remolacha cocida']],['Grasas y frutos secos',['Palta','Maní','Frutos secos','Mantequilla de maní','Semillas (chía, lino)','Aceite','Mantequilla','Mayonesa']],['Comidas preparadas',['Empanada','Locro','Pizza','Hamburguesa']],['Dulces y bebidas',['Miel','Mermelada / jalea','Dulce de leche','Chocolate amargo','Galletas','Chocolate','Helado','Azúcar','Jugo de fruta','Gaseosa']]];
 let DCI=0;
 function dCats(){const seen=[],C=FCAT.map(c=>[c[0],c[1].map(n=>FD.findIndex(x=>x.n===n)).filter(k=>k>=0)]);C.forEach(c=>c[1].forEach(k=>seen.push(k)));const rest=FD.map((x,k)=>k).filter(k=>!seen.includes(k));if(rest.length)C.push(['Otros',rest]);return C;}
@@ -2885,6 +2885,7 @@ function dG(i,v){const n=parseFloat(String(v).replace(',','.'));DR.items[i].g=is
 function dU(){const t=dT();$('#dT').innerHTML='<b>≈ '+Math.round(t.k)+' kcal</b><span>P '+Math.round(t.p)+' g · C '+Math.round(t.c)+' g · G '+Math.round(t.f)+' g</span>';}
 function dAdd(i){if(i==='')return;const x=FD[+i];DR.items.push({n:x.n,g:x.u,k:x.k,p:x.p,c:x.c,f:x.f});dRe();}
 function dOk(){
+  if(DR.edit)return dEditOk();
   const it=DR.items.filter(x=>x.g>0&&String(x.n).trim());if(!it.length){toast('Añade al menos un alimento');return;}
   DR.items=it;const t=dT();if(t.k<=0||t.k>5000){toast('Revisa las cantidades: las calorías deben estar entre 1 y 5000');return;}
   const sl=LS||'',nm=$('#dN').value.trim()||it.map(x=>x.n).slice(0,3).join(', '),R=v=>Math.round(v*10)/10;
@@ -2910,10 +2911,82 @@ function genDiet(){
 function dietTab(){
   const D=S.diet,T=S.targets;
   const nm=Object.keys(S.meals).reduce((a,d)=>a+meals(d).filter(m=>m.kcal>0).length,0);
-  if(!D)return '<div class="fc-card fc-in" style="text-align:center"><b>Tu dieta semanal</b><div class="fc-note" style="margin:6px 0 12px">Armo 7 días con las comidas que registraste, ajustando las cantidades a la meta de cada comida. '+(nm>=3?'Llevas '+nm+' comidas registradas.':'Necesito al menos 3 comidas registradas (llevas '+nm+').')+'</div>'+(nm>=3?'<button class="fc-btn" onclick="genDiet()">Generar desde mis registros</button>':'<button class="fc-btn" onclick="nt=\'log\';render()">Registrar una comida</button>')+'</div>';
+  if(!D)return '<div class="fc-card fc-in" style="text-align:center"><b>Tu dieta semanal</b><div class="fc-note" style="margin:6px 0 12px">Armo 7 días con las comidas que registraste, ajustando las cantidades a la meta de cada comida. '+(nm>=3?'Llevas '+nm+' comidas registradas.':'Necesito al menos 3 comidas registradas (llevas '+nm+').')+'</div>'+(nm>=3?'<button class="fc-btn" onclick="genDiet()">Generar desde mis registros</button>':'<button class="fc-btn" onclick="nt=\'log\';render()">Registrar una comida</button>')+'<input type="file" id="pdfIn" accept="application/pdf,.pdf" style="display:none" onchange="pdfPick(this)"><button class="fc-btn ghost" onclick="document.getElementById(\'pdfIn\').click()">Importar dieta desde PDF</button></div>';
   const day=D.days[dd],t=day.meals.reduce((a,m)=>a+m.k,0),tp=day.meals.reduce((a,m)=>a+m.p,0);
-  return (D.sig!==dsig()?'<div class="fc-warn fc-in">Tus metas o restricciones cambiaron desde que se generó esta dieta. <b onclick="genDiet()" style="text-decoration:underline">Generar una nueva</b></div>':'')+'<div class="fx-chips fx-wk fc-in">'+D.days.map((x,i)=>'<button class="'+(i===dd?'on':'')+'" onclick="dd='+i+';render()">'+WS[i]+'</button>').join('')+'</div><div class="fc-card fc-in"><b>'+esc(day.d)+'</b><div class="fc-sub" style="margin-top:4px">≈ '+t+' kcal · P '+tp+' g · meta '+T.kcal+' kcal · P '+T.p+' g</div></div>'+day.meals.map((m,j)=>'<div class="fc-card fc-in"><div class="fc-main"><div><span class="fc-sub" style="margin:0">'+esc(m.n)+'</span><div class="fx-t">'+esc(m.plato)+'</div></div><span class="fx-v">≈ '+m.k+' kcal</span></div><div class="fc-note">P '+m.p+' g · C '+m.c+' g · G '+m.f+' g<br>'+m.ing.map(z=>esc(z.n)+' '+z.g+' g').join(' · ')+'</div><button class="fc-btn ghost" onclick="planLog('+dd+','+j+')">Registrar esta comida</button></div>').join('')+'<div class="fc-note">Plan armado con tus comidas registradas y cantidades ajustadas a tus metas: valores estimados que varían con marcas y preparación. No sustituye a un nutricionista.</div><button class="fc-btn ghost" onclick="if(confirm(\'¿Reemplazar la dieta actual por una nueva?\'))genDiet()">Volver a generar con mis registros</button>';}
+  return (D.sig!==dsig()?'<div class="fc-warn fc-in">Tus metas o restricciones cambiaron desde que se generó esta dieta. <b onclick="genDiet()" style="text-decoration:underline">Generar una nueva</b></div>':'')+'<div class="fx-chips fx-wk fc-in">'+D.days.map((x,i)=>'<button class="'+(i===dd?'on':'')+'" onclick="dd='+i+';render()">'+WS[i]+'</button>').join('')+'</div><div class="fc-card fc-in"><b>'+esc(day.d)+'</b><div class="fc-sub" style="margin-top:4px">≈ '+t+' kcal · P '+tp+' g · meta '+T.kcal+' kcal · P '+T.p+' g</div></div>'+day.meals.map((m,j)=>'<div class="fc-card fc-in"><div class="fc-main"><div><span class="fc-sub" style="margin:0">'+esc(m.n)+'</span><div class="fx-t">'+esc(m.plato)+'</div></div><span class="fx-v">≈ '+m.k+' kcal</span></div><div class="fc-note">P '+m.p+' g · C '+m.c+' g · G '+m.f+' g<br>'+m.ing.map(z=>esc(z.n)+' '+z.g+' g').join(' · ')+'</div><div class="fx-two"><button class="fc-btn ghost" onclick="planLog('+dd+','+j+')">Registrar esta comida</button><button class="fc-btn ghost" onclick="planEdit('+dd+','+j+')">Editar</button></div></div>').join('')+'<div class="fc-note">Plan armado con tus comidas registradas y cantidades ajustadas a tus metas: valores estimados que varían con marcas y preparación. No sustituye a un nutricionista.</div><button class="fc-btn ghost" onclick="if(confirm(\'¿Reemplazar la dieta actual por una nueva?\'))genDiet()">Volver a generar con mis registros</button>'+'<input type="file" id="pdfIn" accept="application/pdf,.pdf" style="display:none" onchange="pdfPick(this)"><button class="fc-btn ghost" onclick="document.getElementById(\'pdfIn\').click()">Importar dieta desde PDF</button>';}
+
+/* ---------- importar dieta desde PDF ---------- */
+let PDFD=null;
+function pdfLoad(){return window.pdfjsLib?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';sc.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';ok();};sc.onerror=()=>no(new Error('red'));document.head.appendChild(sc);});}
+async function pdfLines(file){
+  await pdfLoad();const doc=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise,out=[];
+  for(let n=1;n<=doc.numPages;n++){const tc=await(await doc.getPage(n)).getTextContent(),rows=[];
+    tc.items.forEach(i=>{if(!i.str.trim())return;const y=Math.round(i.transform[5]/3),r=rows.find(q=>q.y===y);r?r.t.push([i.transform[4],i.str]):rows.push({y,t:[[i.transform[4],i.str]]});});
+    rows.sort((a,b)=>b.y-a.y).forEach(r=>out.push(r.t.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).join(' ').replace(/\s+/g,' ').trim()));}
+  return out;}
+const PD_DAYS=['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+const PD_DAY=/^(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b|^dia\s*([1-7])\b/;
+const PD_SLOT=/^(desayuno|media manana|colacion|snack|merienda|almuerzo|post[- ]?entreno|cena)\b\s*[:\-–]?\s*/;
+const PD_STOP=/^(total|con leche|cocina|sabado|domingo|en cuanto|como ajustar|lista de|pagina|precio|producto|calculo|escenario)\b/;
+const PD_SN={desayuno:'Desayuno','media manana':'Media mañana',colacion:'Media mañana',snack:'Media mañana',merienda:'Merienda',almuerzo:'Almuerzo',cena:'Cena'};
+function pdfBuild(lines){
+  const slots=((S.plan&&S.plan.meals)||[]).map(m=>m.n),pick=n=>slots.find(z=>nz(z).slice(0,4)===nz(n).slice(0,4))||n;
+  const days=[],miss=[];let cur=null,slot=null;const newDay=()=>{cur={meals:{},names:{},k:{}};days.push(cur);};
+  const cut=t=>{const m=t.match(/\s[-–]\s|:/);return m?t.slice(m.index+m[0].length):'';};
+  const hd=t=>nz(t).replace(/^[\s•\-–*·]+/,'').split(/\s[-–]\s|:/)[0].trim();
+  lines.forEach(raw=>{
+    let rest=raw;const t0=nz(raw).replace(/^[\s•\-–*·]+/,'');
+    if(PD_STOP.test(t0)&&!(PD_DAY.test(t0)&&t0.length<25)){slot=null;return;}
+    const h1=hd(raw),dm=h1.length<25&&h1.match(PD_DAY);
+    if(dm){newDay();slot=null;rest=cut(raw);}
+    const t=nz(rest),lead=(t.match(/^[\s•\-–*·]+/)||[''])[0].length,sm=t.slice(lead).match(PD_SLOT);
+    if(sm){const key=sm[1].replace(/[- ]/g,'')==='postentreno'?'Post-entreno':PD_SN[sm[1]];slot=pick(key);if(!cur)newDay();rest=rest.slice(lead+sm[0].length);}
+    if(!slot)return;if(!cur)newDay();
+    if(/^\s*(\d{1,2}\.\d{3}|\d{3,4})\s*$/.test(rest)){cur.k[slot]=+rest.replace('.','');return;}
+    const km=rest.match(/\.\s+(\d{1,2}\.\d{3}|\d{3,4})\s*$/);
+    if(km){const v=+km[1].replace('.','');if(v>=150&&v<=3000){cur.k[slot]=v;rest=rest.slice(0,km.index+1);}}
+    const bm=rest.trim().match(/^batido\s*(\d+)\s*[:\-–]?\s*/i);
+    if(bm){cur.names[slot]='Batido '+bm[1];rest=rest.trim().slice(bm[0].length);}
+    const im=nz(rest).match(/igual que el (batido|desayuno|almuerzo|cena)\s*(\d)?/);
+    if(im){const key=im[1]+(im[2]?' '+im[2]:''),s2=Object.keys(cur.names).find(k=>nz(cur.names[k])===key)||Object.keys(cur.meals).find(k=>nz(k)===key);
+      if(s2&&cur.meals[s2]){cur.meals[slot]=cur.meals[s2].map(x=>({...x}));cur.names[slot]=cur.names[slot]||cur.names[s2];if(!cur.k[slot]&&cur.k[s2])cur.k[slot]=cur.k[s2];}return;}
+    rest.split(/,(?!\d)|[;+]|\.\s+/).forEach(fr=>{
+      const crudo=/crudo/i.test(fr);
+      const c=fr.replace(/\([^)]*\)/g,'').replace(/(\d+)\s*(cdas?|cucharadas?)\s*(de\s*)?pasta de man[ií]/gi,(m,n)=>n*16+' g de mani').replace(/(\d+)\s*rebanadas?\s*(de\s*)?/gi,(m,n)=>n*30+' g de ').replace(/[^,.;]*a gusto[^,.;]*/gi,'').trim();
+      if(!c)return;const r=parseText(c);
+      r.miss.forEach(m=>{if(/\d/.test(m)&&m.length>2)miss.push(m);});
+      r.items.forEach(it=>{if(crudo&&typeof RAW!=='undefined'&&RAW[it.n])it.g=Math.round(it.g/RAW[it.n]);(cur.meals[slot]=cur.meals[slot]||[]).push(it);});
+    });
+  });
+  const ok=days.filter(d=>Object.keys(d.meals).length);if(!ok.length)return{days:[],miss};
+  const R=Math.round,full=WD.map((d,i)=>{const src=ok[i%ok.length];return{d,meals:Object.keys(src.meals).filter(n=>src.meals[n].length).map(n=>{
+    const it=src.meals[n],t=it.reduce((a,x)=>({k:a.k+x.k*x.g/100,p:a.p+x.p*x.g/100,c:a.c+x.c*x.g/100,f:a.f+x.f*x.g/100}),{k:0,p:0,c:0,f:0}),pk=src.k[n],fx=pk&&t.k>0?pk/t.k:1,e=fx>.5&&fx<2.5?fx:1;
+    return{n,plato:src.names[n]||it.map(x=>x.n).slice(0,3).join(', '),ing:it.map(x=>({n:x.n,g:x.g})),k:R(e===1&&!(pk&&fx>.5&&fx<2.5)?t.k:pk),p:R(t.p*e),c:R(t.c*e),f:R(t.f*e)};})};});
+  return{days:full,found:ok.length,miss:[...new Set(miss)].slice(0,12)};}
+async function pdfPick(inp){
+  const f=inp.files&&inp.files[0];inp.value='';if(!f)return;toast('Leyendo el PDF…');
+  try{const r=pdfBuild(await pdfLines(f));
+    if(!r.days.length){toast('No encontré comidas reconocibles en el PDF.');return;}
+    PDFD=r;const nf=r.days[0].meals.length,ni=r.days.slice(0,r.found).reduce((a,d)=>a+d.meals.reduce((b,m)=>b+m.ing.length,0),0);
+    sheet('<h3>Importar dieta</h3><div class="fc-note" style="margin:6px 0 10px">Encontré '+r.found+' día'+(r.found>1?'s':'')+' con '+nf+' comidas y '+ni+' alimentos reconocidos'+(r.found<7?'. Se repetirán para completar los 7 días':'')+'. ≈ '+r.days[0].meals.reduce((a,m)=>a+m.k,0)+' kcal · P '+r.days[0].meals.reduce((a,m)=>a+m.p,0)+' g por día. Las calorías salen del PDF cuando las indica; los macros, de la base de la app (estimados). Después de importar podrás editar los alimentos y cantidades de cada comida.</div>'+(r.miss.length?'<div class="fc-warn">No reconocí: '+r.miss.map(esc).join(' · ')+'</div>':'')+'<button class="fc-btn" onclick="pdfOk()">Usar esta dieta</button><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button>');
+  }catch(e){toast(e&&e.message==='red'?'Necesito internet la primera vez para leer PDFs.':'No pude leer ese PDF.');}}
+function pdfOk(){if(!PDFD)return;S.diet={at:Date.now(),ai:0,src:'pdf',sig:dsig(),days:PDFD.days};S.shop.chk={};PDFD=null;save();closeSheet();dd=0;nt='diet';render();toast('Dieta importada desde el PDF');}
 function planLog(i,j){const m=S.diet.days[i].meals[j],G=m.ing.reduce((a,z)=>a+z.g,0)||100,k=100/G;LS=m.n;DR={name:m.plato,src:'plan',ai:0,items:[{n:m.plato,g:G,k:m.k*k,p:m.p*k,c:m.c*k,f:m.f*k}]};dSheet();}
+function planEdit(i,j){
+  const m=S.diet.days[i].meals[j],G=m.ing.reduce((a,z)=>a+z.g,0)||100,av={k:m.k*100/G,p:m.p*100/G,c:m.c*100/G,f:m.f*100/G},
+    items=m.ing.map(z=>{const x=FD.find(q=>q.n===z.n)||FD.find(q=>q.re.test(nz(z.n)));return x?{n:z.n,g:z.g,k:x.k,p:x.p,c:x.c,f:x.f}:{n:z.n,g:z.g,k:av.k,p:av.p,c:av.c,f:av.f,conf:'baja'};}),
+    t=items.reduce((a,x)=>a+x.k*x.g/100,0),e=m.k>0&&t>0?cl(m.k/t,.5,2.5):1;
+  items.forEach(x=>{x.k*=e;x.p*=e;x.c*=e;x.f*=e;});
+  const sg=JSON.stringify(m.ing),same=[];
+  S.diet.days.forEach((d,a)=>d.meals.forEach((q,b)=>{if((a!==i||b!==j)&&q.n===m.n&&JSON.stringify(q.ing)===sg)same.push([a,b]);}));
+  DR={name:m.plato,src:'dieta',ai:0,items,edit:{i,j,same,ap:same.length>0}};dSheet();}
+function dEditOk(){
+  const it=DR.items.filter(x=>x.g>0&&String(x.n).trim());if(!it.length){toast('Añade al menos un alimento');return;}
+  DR.items=it;const t=dT();if(t.k<=0||t.k>5000){toast('Revisa las cantidades: las calorías deben estar entre 1 y 5000');return;}
+  const E=DR.edit,nm=$('#dN').value.trim()||it.map(x=>x.n).slice(0,3).join(', '),R=Math.round;
+  const hit=(a,b)=>(a===E.i&&b===E.j)||(E.ap&&E.same.some(z=>z[0]===a&&z[1]===b));
+  S.diet.days.forEach((d,a)=>d.meals.forEach((m,b)=>{if(!hit(a,b))return;m.plato=nm;m.ing=it.map(x=>({n:x.n,g:x.g}));m.k=R(t.k);m.p=R(t.p);m.c=R(t.c);m.f=R(t.f);}));
+  DR=null;save();closeSheet();render();toast('Comida actualizada');}
 /* ---------- lista de compras ---------- */
 const RAW={'Arroz cocido':.35,'Fideos cocidos':.4,'Porotos cocidos':.4,'Lentejas cocidas':.4,'Pollo cocido':1.35,'Carne molida cocida':1.3,'Carne vacuna asada':1.3};
 function shopItems(){
