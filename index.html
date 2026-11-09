@@ -2952,7 +2952,7 @@ function pdfRegroup(lines){
     out.push(lab1);x.ls.filter(isN).forEach(l=>out.push(l));x.ls.filter(l=>!isN(l)).forEach(l=>out.push(l));if(x.k)out.push(String(x.k));});
   return lines.slice(0,first).concat(out,lines.slice(last));}
 function pdfBuild(lines){
-  lines=pdfRegroup(lines);
+  const hadY=!!lines.ys;lines=pdfRegroup(lines);const dbg='posiciones: '+(hadY?'sí':'no')+'\n'+lines.slice(0,60).join('\n');
   const slots=((S.plan&&S.plan.meals)||[]).map(m=>m.n),pick=n=>slots.find(z=>nz(z).slice(0,4)===nz(n).slice(0,4))||n;
   const days=[],miss=[];let cur=null,slot=null;const newDay=()=>{cur={meals:{},names:{},k:{}};days.push(cur);};
   const cut=t=>{const m=t.match(/\s[-–]\s|:/);return m?t.slice(m.index+m[0].length):'';};
@@ -2963,11 +2963,13 @@ function pdfBuild(lines){
     if(!slot||!buf.length){buf=[];return;}
     if(!cur)newDay();
     let rest=buf.join(' ').replace(/\s+/g,' ').trim();buf=[];
-    const bm=rest.match(/^batido\s*(\d+)\s*[:\-–]?\s*/i);
-    if(bm){cur.names[slot]='Batido '+bm[1];rest=rest.slice(bm[0].length);}
     const im=nz(rest).match(/igual que el (batido|desayuno|almuerzo|cena)\s*(\d)?/);
-    if(im){const key=im[1]+(im[2]?' '+im[2]:''),s2=Object.keys(cur.names).find(k=>k!==slot&&nz(cur.names[k])===key)||Object.keys(cur.meals).find(k=>k!==slot&&nz(k)===key);
-      if(s2&&cur.meals[s2]){cur.meals[slot]=cur.meals[s2].map(x=>({...x}));cur.names[slot]=cur.names[slot]||cur.names[s2];if(!cur.k[slot]&&cur.k[s2])cur.k[slot]=cur.k[s2];}return;}
+    if(im)rest=rest.slice(0,im.index)+' '+rest.slice(im.index+im[0].length);
+    const bm=rest.match(/\bbatido\s*(\d)\b\s*[:\-–]?\s*/i);
+    if(bm){cur.names[slot]='Batido '+bm[1];rest=rest.replace(bm[0],' ');}
+    if(im){const key=im[1]+(im[2]?' '+im[2]:''),oth=Object.keys(cur.meals).filter(k=>k!==slot);
+      const s2=oth.find(k=>nz(cur.names[k]||'')===key||nz(k)===key)||(im[1]==='batido'?oth.filter(k=>/batido/.test(nz(cur.names[k]||k))).pop():null);
+      if(s2){cur.meals[slot]=cur.meals[s2].map(x=>({...x}));cur.names[slot]=cur.names[slot]||cur.names[s2];if(!cur.k[slot]&&cur.k[s2])cur.k[slot]=cur.k[s2];return;}}
     rest.split(/,(?!\d)|[;+]|\.\s+/).forEach(fr=>{
       const crudo=/crudo/i.test(fr);
       const c=fr.replace(/\([^)]*\)/g,'').replace(/(\d+)\s*(cdas?|cucharadas?)\s*(de\s*)?pasta de man[ií]/gi,(m,n)=>n*16+' g de mani').replace(/(\d+)\s*rebanadas?\s*(de\s*)?/gi,(m,n)=>n*30+' g de ').replace(/[^,.;]*a gusto[^,.;]*/gi,'').trim();
@@ -2998,13 +3000,13 @@ function pdfBuild(lines){
     const it=src.meals[n],t=it.reduce((a,x)=>({k:a.k+x.k*x.g/100,p:a.p+x.p*x.g/100,c:a.c+x.c*x.g/100,f:a.f+x.f*x.g/100}),{k:0,p:0,c:0,f:0}),pk=src.k[n];
     return{n,plato:src.names[n]||it.map(x=>x.n).slice(0,3).join(', '),ing:it.map(x=>({n:x.n,g:x.g})),k:R(t.k),p:R(t.p),c:R(t.c),f:R(t.f),kpdf:pk||0};})};});
   const bad=[];full[0].meals.forEach(m=>{if(m.kpdf&&Math.abs(m.k-m.kpdf)>m.kpdf*.15)bad.push(m.n+' (PDF '+m.kpdf+' kcal, suma '+m.k+' kcal)');});
-  return{days:full,found:ok.length,miss:[...new Set(miss)].slice(0,12),bad};}
+  return{days:full,found:ok.length,miss:[...new Set(miss)].slice(0,12),bad,dbg};}
 async function pdfPick(inp){
   const f=inp.files&&inp.files[0];inp.value='';if(!f)return;toast('Leyendo el PDF…');
   try{const r=pdfBuild(await pdfLines(f));
     if(!r.days.length){toast('No encontré comidas reconocibles en el PDF.');return;}
     PDFD=r;const nf=r.days[0].meals.length,ni=r.days.slice(0,r.found).reduce((a,d)=>a+d.meals.reduce((b,m)=>b+m.ing.length,0),0);
-    sheet('<h3>Importar dieta</h3><div class="fc-note" style="margin:6px 0 10px">Encontré '+r.found+' día'+(r.found>1?'s':'')+' con '+nf+' comidas y '+ni+' alimentos reconocidos'+(r.found<7?'. Se repetirán para completar los 7 días':'')+'. ≈ '+r.days[0].meals.reduce((a,m)=>a+m.k,0)+' kcal · P '+r.days[0].meals.reduce((a,m)=>a+m.p,0)+' g por día. Las calorías salen del PDF cuando las indica; los macros, de la base de la app (estimados). Después de importar podrás editar los alimentos y cantidades de cada comida.</div>'+(r.bad&&r.bad.length?'<div class="fc-warn">Revisa estas comidas: las calorías del PDF no coinciden con la suma de sus alimentos, probablemente se leyeron alimentos de otra comida. '+r.bad.map(esc).join(' · ')+'</div>':'')+(r.miss.length?'<div class="fc-warn">No reconocí: '+r.miss.map(esc).join(' · ')+'</div>':'')+'<button class="fc-btn" onclick="pdfOk()">Usar esta dieta</button><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button>');
+    sheet('<h3>Importar dieta</h3><div class="fc-note" style="margin:6px 0 10px">Encontré '+r.found+' día'+(r.found>1?'s':'')+' con '+nf+' comidas y '+ni+' alimentos reconocidos'+(r.found<7?'. Se repetirán para completar los 7 días':'')+'. ≈ '+r.days[0].meals.reduce((a,m)=>a+m.k,0)+' kcal · P '+r.days[0].meals.reduce((a,m)=>a+m.p,0)+' g por día. Las calorías salen del PDF cuando las indica; los macros, de la base de la app (estimados). Después de importar podrás editar los alimentos y cantidades de cada comida.</div>'+(r.bad&&r.bad.length?'<div class="fc-warn">Revisa estas comidas: las calorías del PDF no coinciden con la suma de sus alimentos, probablemente se leyeron alimentos de otra comida. '+r.bad.map(esc).join(' · ')+'</div>':'')+(r.miss.length?'<div class="fc-warn">No reconocí: '+r.miss.map(esc).join(' · ')+'</div>':'')+'<details class="fc-note" style="margin:8px 0"><summary>Ver texto leído</summary><pre style="white-space:pre-wrap;font-size:11px;margin:6px 0">'+esc(r.dbg||'')+'</pre></details><button class="fc-btn" onclick="pdfOk()">Usar esta dieta</button><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button>');
   }catch(e){toast(e&&e.message==='red'?'Necesito internet la primera vez para leer PDFs.':'No pude leer ese PDF.');}}
 function pdfOk(){if(!PDFD)return;S.diet={at:Date.now(),ai:0,src:'pdf',sig:dsig(),days:PDFD.days};S.shop.chk={};PDFD=null;save();closeSheet();dd=0;nt='diet';render();toast('Dieta importada desde el PDF');}
 function planLog(i,j){const m=S.diet.days[i].meals[j],G=m.ing.reduce((a,z)=>a+z.g,0)||100,k=100/G;LS=m.n;DR={name:m.plato,src:'plan',ai:0,items:[{n:m.plato,g:G,k:m.k*k,p:m.p*k,c:m.c*k,f:m.f*k}]};dSheet();}
