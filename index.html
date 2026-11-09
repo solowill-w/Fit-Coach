@@ -2934,21 +2934,16 @@ function pdfBuild(lines){
   const days=[],miss=[];let cur=null,slot=null;const newDay=()=>{cur={meals:{},names:{},k:{}};days.push(cur);};
   const cut=t=>{const m=t.match(/\s[-–]\s|:/);return m?t.slice(m.index+m[0].length):'';};
   const hd=t=>nz(t).replace(/^[\s•\-–*·]+/,'').split(/\s[-–]\s|:/)[0].trim();
-  lines.forEach(raw=>{
-    let rest=raw;const t0=nz(raw).replace(/^[\s•\-–*·]+/,'');
-    if(PD_STOP.test(t0)&&!(PD_DAY.test(t0)&&t0.length<25)){slot=null;return;}
-    const h1=hd(raw),dm=h1.length<25&&h1.match(PD_DAY);
-    if(dm){newDay();slot=null;rest=cut(raw);}
-    const t=nz(rest),lead=(t.match(/^[\s•\-–*·]+/)||[''])[0].length,sm=t.slice(lead).match(PD_SLOT);
-    if(sm){const key=sm[1].replace(/[- ]/g,'')==='postentreno'?'Post-entreno':PD_SN[sm[1]];slot=pick(key);if(!cur)newDay();rest=rest.slice(lead+sm[0].length);}
-    if(!slot)return;if(!cur)newDay();
-    if(/^\s*(\d{1,2}\.\d{3}|\d{3,4})\s*$/.test(rest)){cur.k[slot]=+rest.replace('.','');return;}
-    const km=rest.match(/\.\s+(\d{1,2}\.\d{3}|\d{3,4})\s*$/);
-    if(km){const v=+km[1].replace('.','');if(v>=150&&v<=3000){cur.k[slot]=v;rest=rest.slice(0,km.index+1);}}
-    const bm=rest.trim().match(/^batido\s*(\d+)\s*[:\-–]?\s*/i);
-    if(bm){cur.names[slot]='Batido '+bm[1];rest=rest.trim().slice(bm[0].length);}
+  let buf=[],pre='';
+  /* una comida = filas hasta el número de kcal del final; la etiqueta (ALMUERZO, CENA...) puede quedar en medio de la celda */
+  const flush=()=>{
+    if(!slot||!buf.length){buf=[];return;}
+    if(!cur)newDay();
+    let rest=buf.join(' ').replace(/\s+/g,' ').trim();buf=[];
+    const bm=rest.match(/^batido\s*(\d+)\s*[:\-–]?\s*/i);
+    if(bm){cur.names[slot]='Batido '+bm[1];rest=rest.slice(bm[0].length);}
     const im=nz(rest).match(/igual que el (batido|desayuno|almuerzo|cena)\s*(\d)?/);
-    if(im){const key=im[1]+(im[2]?' '+im[2]:''),s2=Object.keys(cur.names).find(k=>nz(cur.names[k])===key)||Object.keys(cur.meals).find(k=>nz(k)===key);
+    if(im){const key=im[1]+(im[2]?' '+im[2]:''),s2=Object.keys(cur.names).find(k=>k!==slot&&nz(cur.names[k])===key)||Object.keys(cur.meals).find(k=>k!==slot&&nz(k)===key);
       if(s2&&cur.meals[s2]){cur.meals[slot]=cur.meals[s2].map(x=>({...x}));cur.names[slot]=cur.names[slot]||cur.names[s2];if(!cur.k[slot]&&cur.k[s2])cur.k[slot]=cur.k[s2];}return;}
     rest.split(/,(?!\d)|[;+]|\.\s+/).forEach(fr=>{
       const crudo=/crudo/i.test(fr);
@@ -2957,26 +2952,43 @@ function pdfBuild(lines){
       r.miss.forEach(m=>{if(/\d/.test(m)&&m.length>2)miss.push(m);});
       r.items.forEach(it=>{if(crudo&&typeof RAW!=='undefined'&&RAW[it.n])it.g=Math.round(it.g/RAW[it.n]);(cur.meals[slot]=cur.meals[slot]||[]).push(it);});
     });
+  };
+  lines.forEach(raw=>{
+    let rest=raw;const t0=nz(raw).replace(/^[\s•\-–*·]+/,'');
+    if(PD_STOP.test(t0)&&!(PD_DAY.test(t0)&&t0.length<25)){flush();slot=null;pre='';return;}
+    const h1=hd(raw),dm=h1.length<25&&h1.match(PD_DAY);
+    if(dm){flush();newDay();slot=null;pre='';rest=cut(raw);}
+    const t=nz(rest),lead=(t.match(/^[\s•\-–*·]+/)||[''])[0].length,sm=t.slice(lead).match(PD_SLOT);
+    if(sm){if(slot&&buf.length)flush();const key=sm[1].replace(/[- ]/g,'')==='postentreno'?'Post-entreno':PD_SN[sm[1]];slot=pick(key);if(!cur)newDay();rest=rest.slice(lead+sm[0].length);if(pre){buf.unshift(pre);}pre='';}
+    const endK=/\.\s+(\d{1,2}\.\d{3}|\d{3,4})\s*$/;
+    if(!slot){pre=/\d/.test(rest)&&!endK.test(rest)&&!/^\s*(\d{1,2}\.\d{3}|\d{3,4})\s*$/.test(rest)?rest.trim():'';return;}
+    if(!cur)newDay();
+    if(/^\s*(\d{1,2}\.\d{3}|\d{3,4})\s*$/.test(rest)){cur.k[slot]=+rest.replace('.','');flush();slot=null;return;}
+    const km=rest.match(endK);let end=false;
+    if(km){const v=+km[1].replace('.','');if(v>=150&&v<=3000){cur.k[slot]=v;rest=rest.slice(0,km.index+1);end=true;}}
+    if(rest.trim())buf.push(rest.trim());
+    if(end){flush();slot=null;}
   });
+  flush();
   const ok=days.filter(d=>Object.keys(d.meals).length);if(!ok.length)return{days:[],miss};
   const R=Math.round,full=WD.map((d,i)=>{const src=ok[i%ok.length];return{d,meals:Object.keys(src.meals).filter(n=>src.meals[n].length).map(n=>{
-    const it=src.meals[n],t=it.reduce((a,x)=>({k:a.k+x.k*x.g/100,p:a.p+x.p*x.g/100,c:a.c+x.c*x.g/100,f:a.f+x.f*x.g/100}),{k:0,p:0,c:0,f:0}),pk=src.k[n],fx=pk&&t.k>0?pk/t.k:1,e=fx>.5&&fx<2.5?fx:1;
-    return{n,plato:src.names[n]||it.map(x=>x.n).slice(0,3).join(', '),ing:it.map(x=>({n:x.n,g:x.g})),k:R(e===1&&!(pk&&fx>.5&&fx<2.5)?t.k:pk),p:R(t.p*e),c:R(t.c*e),f:R(t.f*e)};})};});
-  return{days:full,found:ok.length,miss:[...new Set(miss)].slice(0,12)};}
+    const it=src.meals[n],t=it.reduce((a,x)=>({k:a.k+x.k*x.g/100,p:a.p+x.p*x.g/100,c:a.c+x.c*x.g/100,f:a.f+x.f*x.g/100}),{k:0,p:0,c:0,f:0}),pk=src.k[n];
+    return{n,plato:src.names[n]||it.map(x=>x.n).slice(0,3).join(', '),ing:it.map(x=>({n:x.n,g:x.g})),k:R(t.k),p:R(t.p),c:R(t.c),f:R(t.f),kpdf:pk||0};})};});
+  const bad=[];full[0].meals.forEach(m=>{if(m.kpdf&&Math.abs(m.k-m.kpdf)>m.kpdf*.15)bad.push(m.n+' (PDF '+m.kpdf+' kcal, suma '+m.k+' kcal)');});
+  return{days:full,found:ok.length,miss:[...new Set(miss)].slice(0,12),bad};}
 async function pdfPick(inp){
   const f=inp.files&&inp.files[0];inp.value='';if(!f)return;toast('Leyendo el PDF…');
   try{const r=pdfBuild(await pdfLines(f));
     if(!r.days.length){toast('No encontré comidas reconocibles en el PDF.');return;}
     PDFD=r;const nf=r.days[0].meals.length,ni=r.days.slice(0,r.found).reduce((a,d)=>a+d.meals.reduce((b,m)=>b+m.ing.length,0),0);
-    sheet('<h3>Importar dieta</h3><div class="fc-note" style="margin:6px 0 10px">Encontré '+r.found+' día'+(r.found>1?'s':'')+' con '+nf+' comidas y '+ni+' alimentos reconocidos'+(r.found<7?'. Se repetirán para completar los 7 días':'')+'. ≈ '+r.days[0].meals.reduce((a,m)=>a+m.k,0)+' kcal · P '+r.days[0].meals.reduce((a,m)=>a+m.p,0)+' g por día. Las calorías salen del PDF cuando las indica; los macros, de la base de la app (estimados). Después de importar podrás editar los alimentos y cantidades de cada comida.</div>'+(r.miss.length?'<div class="fc-warn">No reconocí: '+r.miss.map(esc).join(' · ')+'</div>':'')+'<button class="fc-btn" onclick="pdfOk()">Usar esta dieta</button><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button>');
+    sheet('<h3>Importar dieta</h3><div class="fc-note" style="margin:6px 0 10px">Encontré '+r.found+' día'+(r.found>1?'s':'')+' con '+nf+' comidas y '+ni+' alimentos reconocidos'+(r.found<7?'. Se repetirán para completar los 7 días':'')+'. ≈ '+r.days[0].meals.reduce((a,m)=>a+m.k,0)+' kcal · P '+r.days[0].meals.reduce((a,m)=>a+m.p,0)+' g por día. Las calorías salen del PDF cuando las indica; los macros, de la base de la app (estimados). Después de importar podrás editar los alimentos y cantidades de cada comida.</div>'+(r.bad&&r.bad.length?'<div class="fc-warn">Revisa estas comidas: las calorías del PDF no coinciden con la suma de sus alimentos, probablemente se leyeron alimentos de otra comida. '+r.bad.map(esc).join(' · ')+'</div>':'')+(r.miss.length?'<div class="fc-warn">No reconocí: '+r.miss.map(esc).join(' · ')+'</div>':'')+'<button class="fc-btn" onclick="pdfOk()">Usar esta dieta</button><button class="fc-btn ghost" onclick="closeSheet()">Cancelar</button>');
   }catch(e){toast(e&&e.message==='red'?'Necesito internet la primera vez para leer PDFs.':'No pude leer ese PDF.');}}
 function pdfOk(){if(!PDFD)return;S.diet={at:Date.now(),ai:0,src:'pdf',sig:dsig(),days:PDFD.days};S.shop.chk={};PDFD=null;save();closeSheet();dd=0;nt='diet';render();toast('Dieta importada desde el PDF');}
 function planLog(i,j){const m=S.diet.days[i].meals[j],G=m.ing.reduce((a,z)=>a+z.g,0)||100,k=100/G;LS=m.n;DR={name:m.plato,src:'plan',ai:0,items:[{n:m.plato,g:G,k:m.k*k,p:m.p*k,c:m.c*k,f:m.f*k}]};dSheet();}
 function planEdit(i,j){
   const m=S.diet.days[i].meals[j],G=m.ing.reduce((a,z)=>a+z.g,0)||100,av={k:m.k*100/G,p:m.p*100/G,c:m.c*100/G,f:m.f*100/G},
     items=m.ing.map(z=>{const x=FD.find(q=>q.n===z.n)||FD.find(q=>q.re.test(nz(z.n)));return x?{n:z.n,g:z.g,k:x.k,p:x.p,c:x.c,f:x.f}:{n:z.n,g:z.g,k:av.k,p:av.p,c:av.c,f:av.f,conf:'baja'};}),
-    t=items.reduce((a,x)=>a+x.k*x.g/100,0),e=m.k>0&&t>0?cl(m.k/t,.5,2.5):1;
-  items.forEach(x=>{x.k*=e;x.p*=e;x.c*=e;x.f*=e;});
+    t=items.reduce((a,x)=>a+x.k*x.g/100,0);
   const sg=JSON.stringify(m.ing),same=[];
   S.diet.days.forEach((d,a)=>d.meals.forEach((q,b)=>{if((a!==i||b!==j)&&q.n===m.n&&JSON.stringify(q.ing)===sg)same.push([a,b]);}));
   DR={name:m.plato,src:'dieta',ai:0,items,edit:{i,j,same,ap:same.length>0}};dSheet();}
