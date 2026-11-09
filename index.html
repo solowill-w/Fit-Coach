@@ -2,7 +2,15 @@
 <html lang="es" class="booting" style="background:#06141b">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"><style>html,body{touch-action:pan-x pan-y}</style><script>
+/* Zoom bloqueado en toda la app (pellizco, doble toque, Ctrl+rueda, Ctrl +/-) */
+(function(){var p=function(e){e.preventDefault()};
+['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});
+document.addEventListener('touchmove',function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
+document.addEventListener('wheel',function(e){if(e.ctrlKey)e.preventDefault()},{passive:false});
+document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&['+','-','=','_','0'].indexOf(e.key)>-1)e.preventDefault()});
+})();
+</script>
 <title>FitCoach AI</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
